@@ -1,0 +1,23 @@
+%dw 2.0
+
+type auto_cf098b68_468b_48d3_bd30_90f6ca9ffdbe_Input_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {| Accept?: String |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {|  |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {| flightsId: String |}, 
+  version: String, 
+  localAddress: String
+|}
+

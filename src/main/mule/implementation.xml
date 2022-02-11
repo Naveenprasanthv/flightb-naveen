@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getFlights" doc:id="a1c2c7a6-e1fa-433e-88c6-a5f3babba2d9" >
+		<ee:transform doc:name="Transform Message" doc:id="cd7dfdae-fe5f-4333-abfe-e65d20342676" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="origin" ><![CDATA[attributes.queryParams.origin]]></ee:set-variable>
+				<ee:set-variable variableName="destination" ><![CDATA[attributes.queryParams.destination]]></ee:set-variable>
+				<ee:set-variable variableName="date" ><![CDATA[attributes.queryParams.departureDate ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="GET" doc:name="Request" doc:id="6f0c7fd0-66b5-4249-8a13-277ca95f73fd" config-ref="HTTP_Request_configuration" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/flights">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+		</http:request>
+		<choice doc:name="Choice" doc:id="6aa3c8ce-86d0-4963-b5c0-0198b0ed45d4" >
+			<when expression="#[vars.origin != null and vars.destination != null]">
+				<ee:transform doc:name="Transform Message" doc:id="08a9a6ba-ecc5-458e-85ef-ab4a7085b6c5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"ID": item.flightId,
+	"code": item.code,
+	"price": item.price,
+	"departureDate": item.departureDate,
+	"origin": item.origin,
+	"destination": item.destination,
+	"emptySeats": item.emptySeats,
+	"planeType": item.planeType,
+	"totalSeats": item.totalSeats
+}) filter((item, index) -> item.origin == vars.origin and item.destination == vars.destination)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression="#[vars.date != null]">
+				<ee:transform doc:name="Transform Message" doc:id="428e72ee-b333-470c-863e-c04c6f990660" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"ID": item.flightId,
+	"code": item.code,
+	"price": item.price,
+	"departureDate": item.departureDate,
+	"origin": item.origin,
+	"destination": item.destination,
+	"emptySeats": item.emptySeats,
+	"planeType": item.planeType,
+	"totalSeats": item.totalSeats
+}) filter((item, index) -> item.departureDate[0 to 9] == vars.date)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression="#[vars.origin != null and vars.destination != null and vars.date != null]">
+				<ee:transform doc:name="Transform Message" doc:id="93158b19-759c-4f97-ae75-0a42c6eabc94" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"ID": item.flightId,
+	"code": item.code,
+	"price": item.price,
+	"departureDate": item.departureDate,
+	"origin": item.origin,
+	"destination": item.destination,
+	"emptySeats": item.emptySeats,
+	"planeType": item.planeType,
+	"totalSeats": item.totalSeats
+}) filter((item, index) -> item.origin == vars.origin and 
+	item.destination == vars.destination and item.departureDate[0 to 9] == vars.date
+)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="68931255-0d59-485f-939f-cc53ffb3d8ce">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"ID": item.flightId,
+	"code": item.code,
+	"price": item.price,
+	"departureDate": item.departureDate,
+	"origin": item.origin,
+	"destination": item.destination,
+	"emptySeats": item.emptySeats,
+	"planeType": item.planeType,
+	"totalSeats": item.totalSeats
+})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="postFlights" doc:id="d34e3b6f-8d15-4536-98f8-7bb6d0df204e" >
+		<http:request method="POST" doc:name="Request" doc:id="e5e6eb61-1dfb-40ed-b3e1-9ce8798ca1db" config-ref="HTTP_Request_configuration" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/flights" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+		</http:request>
+	</flow>
+	<flow name="getFlightsById" doc:id="ffc555fe-dddd-4747-b2b0-c6ca5c93ffee">
+		<http:request method="GET" doc:name="Request" doc:id="2073a334-d081-44d1-a663-280b94c3b7e9" config-ref="HTTP_Request_configuration" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/flights/{flightsId}">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"flightsId" : attributes.uriParams.flightsId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="da1b8d4e-2b03-49cf-8fec-b52464895000">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"ID": item.flightId,
+	"code": item.code,
+	"price": item.price,
+	"departureDate": item.departureDate,
+	"origin": item.origin,
+	"destination": item.destination,
+	"emptySeats": item.emptySeats,
+	"planeType": item.planeType,
+	"totalSeats": item.totalSeats
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="UpdateFlightsById" doc:id="195ae985-a9be-460c-9eae-d1e7872f1e39" >
+		<http:request method="PATCH" doc:name="Request" doc:id="2e73e04a-79e1-48a9-bfcf-74872a2a4b88" config-ref="HTTP_Request_configuration" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/flights/{flightsId}">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"flightsId" : attributes.uriParams.flightsId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="deleteFlightsById" doc:id="cf098b68-468b-48d3-bd30-90f6ca9ffdbe" >
+		<http:request method="DELETE" doc:name="Request" doc:id="cf4f2a43-8cef-4f85-9084-1b47f5a54346" config-ref="HTTP_Request_configuration" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/flights/{flightsId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"flightsId" : attributes.uriParams.flightsId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="getPartners" doc:id="2e88db8b-0d73-48df-9501-bf2ee0659c65" >
+		<ee:transform doc:name="Transform Message" doc:id="bc01877b-6e81-4860-8be5-388cd327cb05" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="name" ><![CDATA[attributes.queryParams.partnerName]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="GET" doc:name="Request" doc:id="77c584df-ca7d-49d8-9679-84a28572a22c" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/partners">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"Key" : "Value"
+}]]]></http:uri-params>
+		</http:request>
+		<choice doc:name="Choice" doc:id="57473913-9b8d-4193-913f-e97501f1a60e" >
+			<when expression="#[vars.name != null]">
+				<ee:transform doc:name="Transform Message" doc:id="3b7ce0c2-eb90-40fa-96b0-9960d6d5562d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item, index)-> {
+	ID:	item.partnerId,
+	Name: item.partnerName,
+	Flights: item.numberOfFlights,
+	Services: item.services
+	}) filter ((item, index)-> item.Name == vars.name)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="42f71587-9cda-41ae-853b-198db096a14f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item, index)-> {
+	ID:	item.partnerId,
+	Name: item.partnerName,
+	Flights: item.numberOfFlights,
+	Services: item.services
+	})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="postPartners" doc:id="c242c67c-32df-40de-998f-a8ceeb6ee3a5" >
+		<http:request method="POST" doc:name="Request" doc:id="654e4323-d9b3-4fbe-be1a-ee4b923c7ccf" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/partners" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"Key" : "Value"
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="getPartnerById" doc:id="47bf2b28-5ff9-4bcb-9e3d-0b21a1622ac1" >
+		<http:request method="GET" doc:name="Request" doc:id="7d3c4dc7-b4e1-49ca-b76c-9c8895a89232" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/partners/{partnersId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"partnersId" : attributes.uriParams.partnersId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="32cfe6d8-6033-4b6a-8b8c-91bc034e4622" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item, index)-> {
+	ID:	item.partnerId,
+	Name: item.partnerName,
+	Flights: item.numberOfFlights,
+	Services: item.services
+	})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="UpdatePartnerById" doc:id="7d372337-3c9a-4d09-bc79-31397d7bbb20" >
+		<http:request method="PATCH" doc:name="Request" doc:id="42d197da-9948-411e-bfd0-3bb780a9837e" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/partners/{partnersId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"partnersId" : attributes.uriParams.partnersId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="DeltePartnerById" doc:id="6dc594c7-1976-4fb3-9b64-92e5f1f8feac" >
+		<http:request method="DELETE" doc:name="Request" doc:id="1d12d67c-8243-4ffd-ab6c-f194fa8052a7" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/partners/{partnersId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"partnersId" : attributes.uriParams.partnersId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="getBookings" doc:id="4165b671-dac2-4100-931d-14047a4e36de" >
+		<ee:transform doc:name="Transform Message" doc:id="fb47345e-154f-486e-8522-330a3b0bdaee" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="name" ><![CDATA[attributes.queryParams.passenger]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="GET" doc:name="Request" doc:id="ee88d81a-cdbf-4e82-b629-da07669c6d3e" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/bookings" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+		</http:request>
+		<choice doc:name="Choice" doc:id="d6ffe09c-2e8b-4039-871e-6713b0062a66" >
+			<when expression="#[vars.name != null]">
+				<ee:transform doc:name="Transform Message" doc:id="624a2456-ba57-4d91-b4e2-54cdcbd2ce37" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item,index)-> {
+	Passenger: item.passenger,
+	BookingID: item.bookingId,
+	FlightID: item.flightId
+}) filter ((item,index)-> item.Passenger == vars.name)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="b44ddb47-b270-4f56-90e4-403b9bbf456a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item,index)-> {
+	Passenger: item.passenger,
+	BookingID: item.bookingId,
+	FlightID: item.flightId
+})]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="postBookings" doc:id="10de4ecd-3075-47f7-9e29-e4a64a94fa68" >
+		<http:request method="POST" doc:name="Request" doc:id="130ccaac-c4ab-445a-ab88-24e27baa1d82" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/bookings" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+		</http:request>
+	</flow>
+	<flow name="getBookingsById" doc:id="44747f82-ffd8-4272-bae2-a66f51effb16">
+		<http:request method="GET" doc:name="Request" doc:id="6b833f02-8f95-4650-ba02-530560c5af15" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/bookings/{bookingId}">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"bookingId" : attributes.uriParams.bookingId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="70d57941-9f74-400a-b24c-fe9401370ffa" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map((item,index)-> {
+	Passenger: item.passenger,
+	BookingID: item.bookingId,
+	FlightID: item.flightId
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="updateBookingById" doc:id="be0ed505-1b68-457d-a18b-a40454e26137" >
+		<http:request method="PATCH" doc:name="Request" doc:id="38bd16e9-2fd9-4c7b-a142-23eb1e04a11d" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/bookings/{bookingId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"bookingId" : attributes.uriParams.bookingId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+	<flow name="DeleteBookingById" doc:id="b8864617-8d71-4219-ae87-10b42774b789" >
+		<http:request method="DELETE" doc:name="Request" doc:id="d5e84fa4-7863-4ac5-bdc6-650f487b4d18" url="http://flight-booking-sys-api-lolkow.us-e2.cloudhub.io/api/bookings/{bookingId}" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"client_secret" : "Fd715e0a6b5447D7A107d13FFe44cE08",
+	"client_id" : "0ba1409ff5db48d3a13328214163c404"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"bookingId" : attributes.uriParams.bookingId
+}]]]></http:uri-params>
+		</http:request>
+	</flow>
+</mule>
